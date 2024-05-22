@@ -12,7 +12,7 @@
             <img src="" class="card-img-top" />
             <div>
                 <h5 class="card-title">@car.Marca @car.Modelo</h5>
-                <a asp-action="DeleteFavorito" asp-route-idcoche="@car.IdCoche" class="btn btn-danger">Eliminar</a>
+                <a asp-controller="Coches" asp-action="DeleteFavorito" asp-route-idcoche="@car.IdCoche" class="btn btn-danger">Eliminar</a>
             </div>
         </div>
     }
