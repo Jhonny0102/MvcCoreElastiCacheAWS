@@ -1,22 +1,22 @@
-﻿using MvcCoreElastiCacheAWS.Helpers;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using MvcCoreElastiCacheAWS.Models;
 using Newtonsoft.Json;
-using StackExchange.Redis;
+using System.Text;
 
 namespace MvcCoreElastiCacheAWS.Services
 {
     public class ServiceAWSCache
     {
-        private IDatabase cache;
+        private readonly IDistributedCache _cache;
 
-        public ServiceAWSCache()
+        public ServiceAWSCache(IDistributedCache cache)
         {
-            this.cache = HelperCacheRedis.Connection.GetDatabase();
+            _cache = cache;
         }
 
         public async Task<List<Coche>> GetCochesFavoritosAsync()
         {
-            string jsonCoches = await this.cache.StringGetAsync("cochesfavoritos");
+            var jsonCoches = await _cache.GetStringAsync("cochesfavoritos");
             if (jsonCoches == null)
             {
                 return null;
@@ -30,43 +30,42 @@ namespace MvcCoreElastiCacheAWS.Services
 
         public async Task AddCochefavoritoAsync(Coche car)
         {
-            List<Coche> coches = await this.GetCochesFavoritosAsync();
-            //SINO EXISTEN COCHES FAVORITOS TODAVIA , CREAMOS LA COLECCCION
+            var coches = await GetCochesFavoritosAsync();
             if (coches == null)
             {
                 coches = new List<Coche>();
             }
-            else
+            coches.Add(car);
+
+            var jsonCoches = JsonConvert.SerializeObject(coches);
+            await _cache.SetStringAsync("cochesfavoritos", jsonCoches, new DistributedCacheEntryOptions
             {
-                //AÑADIMOS EL NUEVO COCHE A LA COLECCION
-                coches.Add(car);
-                //SERIALIZAMOS A JSON LA COLECCION
-                string jsonCoches = JsonConvert.SerializeObject(coches);
-                //ALAMCENAMOS LA COLECCION DENTRO DE CACHE REDIS
-                //INDICAREMOS QUE LOS DATOS DURARAN 30 MINUTOS
-                await this.cache.StringSetAsync("cochesfavoritos", jsonCoches, TimeSpan.FromMinutes(30));
-            }
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+            });
         }
 
         public async Task DeleteCocheFavoritoAsync(int idcoche)
         {
-            List<Coche> cars = await this.GetCochesFavoritosAsync();
+            var cars = await GetCochesFavoritosAsync();
             if (cars != null)
             {
-                Coche cocheEliminar = cars.FirstOrDefault(z => z.IdCoche == idcoche);
-                cars.Remove(cocheEliminar);
-                //COMPROBAMOS SI LA COLECCION TIENE COCHES FAVORITOS TODAVIA O NO TIENE
-                //SINO TIENE COCHES, ELIMINAMOS LA KEY DE CACHE REDIS
-                if (cars.Count == 0)
+                var cocheEliminar = cars.FirstOrDefault(z => z.IdCoche == idcoche);
+                if (cocheEliminar != null)
                 {
-                    await this.cache.KeyDeleteAsync("cochesfavoritos");
-                }
-                else
-                {
-                    //ALMACENAMOS DE NUEVO LOS COCHES SIN EL CAR ELIMINADO
-                    string jsonCoches = JsonConvert.SerializeObject(cars);
-                    //ACTUALIZAMOS EL CACHE REDIS
-                    await this.cache.StringSetAsync("cochesfavoritos" , jsonCoches , TimeSpan.FromMinutes(30));
+                    cars.Remove(cocheEliminar);
+
+                    if (cars.Count == 0)
+                    {
+                        await _cache.RemoveAsync("cochesfavoritos");
+                    }
+                    else
+                    {
+                        var jsonCoches = JsonConvert.SerializeObject(cars);
+                        await _cache.SetStringAsync("cochesfavoritos", jsonCoches, new DistributedCacheEntryOptions
+                        {
+                            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                        });
+                    }
                 }
             }
         }
