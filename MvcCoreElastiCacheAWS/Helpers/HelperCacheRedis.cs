@@ -4,7 +4,7 @@ namespace MvcCoreElastiCacheAWS.Helpers
 {
     public class HelperCacheRedis
     {
-        public static Lazy<ConnectionMultiplexer> CreateConnection = new Lazy<ConnectionMultiplexer>(() =>
+        private static Lazy<ConnectionMultiplexer> CreateConnection = new Lazy<ConnectionMultiplexer>(() =>
         {
             //AQUI IRA NUESTRA CADENA DE CONECCION
             string connectionString = "cachecoches.uk9dp8.ng.0001.use1.cache.amazonaws.com:6379";
