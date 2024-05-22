@@ -9,16 +9,17 @@
     @foreach (Coche car in Model)
     {
         <div class="card" style="width:18rem">
-            <img src="" class="card-img-top" />
+            <img src="@car.Imagen" class="card-img-top" />
             <div>
                 <h5 class="card-title">@car.Marca @car.Modelo</h5>
                 <a asp-controller="Coches" asp-action="DeleteFavorito" asp-route-idcoche="@car.IdCoche" class="btn btn-danger">Eliminar</a>
             </div>
         </div>
     }
-    {
-        <h2>
-            No existen Coches Favoritos
-        </h2>
-    }
+}
+else
+{
+    <h2>
+        No existen coches favoritos
+    </h2>
 }
